@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.cambio.ui.theme.CambioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -40,6 +42,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 // Modelo de dados para a cotação
 data class Cotacao(val moeda: String, val valor: String, val data: String)
 
@@ -48,30 +51,34 @@ fun CurrencyConverterApp() {
     var cotacoes by remember { mutableStateOf<List<Cotacao>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Carrega os dados quando a tela inicia
+    // Carrega os dados quando a app inicia
     LaunchedEffect(Unit) {
         cotacoes = withContext(Dispatchers.IO) { buscarCotacoes() }
     }
 
-
-    MaterialTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    CambioTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            // Imagem de dinheiro
-            Image(
-                painter = painterResource(id = R.drawable.ic_money), // Substitua por sua imagem
-                contentDescription = stringResource(id = R.string.money_image_description),
-                contentScale = ContentScale.Fit,
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-            )
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Imagem de dinheiro
+                Image(
+                    painter = painterResource(id = R.drawable.ic_money),
+                    contentDescription = stringResource(id = R.string.money_image_description),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Campo para inserção do valor
                 var inputValue by remember { mutableStateOf("") }
                 BasicTextField(
@@ -86,76 +93,86 @@ fun CurrencyConverterApp() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(8.dp)
-                                .background(Color.LightGray),
+                                // Substituí a cor fixa por uma do Material Design adaptável
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (inputValue.isEmpty()) Text(
                                 stringResource(id = R.string.enter_value_hint),
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             innerTextField()
                         }
                     }
-               )
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo de seleção de conversão
+                // Campo de seleção de conversão
+                val conversionOptions = listOf(
+                    stringResource(id = R.string.euro_to_real),
+                    stringResource(id = R.string.real_to_euro),
+                    stringResource(id = R.string.dollar_to_real),
+                    stringResource(id = R.string.dollar_to_euro)
+                )
+                val locale = Resources.getSystem().configuration.locales[0].language
 
-            val conversionOptions = listOf(
-                stringResource(id = R.string.euro_to_real),
-                stringResource(id = R.string.real_to_euro),
-                stringResource(id = R.string.dollar_to_real),
-                stringResource(id = R.string.dollar_to_euro)
-            )
-            val locale = Resources.getSystem().configuration.locales[0].language
-            val menuColor = if (locale == "pt") Color.LightGray else Color.Magenta
-            var selectedConversion by remember { mutableStateOf(conversionOptions.first()) }
-            DropdownMenuField(
-                options = conversionOptions,
-                selectedOption = selectedConversion,
-                onOptionSelected = { selectedConversion = it },
-                colorMenu=menuColor
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                val isDark = isSystemInDarkTheme()
 
-            // Campo para exibição do resultado da conversão
-            Text(
-                text = stringResource(id = R.string.result_text, (inputValue.toDoubleOrNull() ?: 0.0) * 5.0),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+                val menuColor = if (locale == "pt") { MaterialTheme.colorScheme.surfaceVariant }
+                else {if (isDark) Color(0xFF4B424B)
+                else Color(0xFFE3DBE4)
+                }
+                var selectedConversion by remember { mutableStateOf(conversionOptions.first()) }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                DropdownMenuField(
+                    options = conversionOptions,
+                    selectedOption = selectedConversion,
+                    onOptionSelected = { selectedConversion = it },
+                    colorMenu = menuColor
+                )
 
-            // Lista de últimas cotações
-            Text(
-                text = stringResource(id = R.string.latest_quotes_title),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
+                // Campo para exibição do resultado da conversão
+                Text(
+                    text = stringResource(id = R.string.result_text, (inputValue.toDoubleOrNull() ?: 0.0) * 5.0),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
 
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(cotacoes) { cotacao ->
-                    Text(
-                        text = "${cotacao.moeda}: ${cotacao.valor} (${cotacao.data})",
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Lista de últimas cotações
+                Text(
+                    text = stringResource(id = R.string.latest_quotes_title),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(cotacoes) { cotacao ->
+                        Text(
+                            text = "${cotacao.moeda}: ${cotacao.valor} (${cotacao.data})",
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-
 // Função suspensa que simula a busca de cotações
 suspend fun buscarCotacoes(): List<Cotacao> {
-
     return listOf(
         Cotacao("Euro", "6.55", "09/02/2025"),
         Cotacao("Euro", "6.58", "08/02/2025"),
@@ -171,8 +188,8 @@ suspend fun buscarCotacaoDolar(data: String): Cotacao {
     val response:String? =mLoad("https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao=%2702-07-2025%27&\$top=100&\$format=json&\$select=cotacaoCompra,dataHoraCotacao")?.readText()
     Log.v("Retorno:","retorno:"+response)
     return Cotacao("Dólar", "5,75", data)
-
 }
+
 suspend fun mLoad(string: String): BufferedReader? {
     val url: URL = mStringToURL(string)!!
     val connection: HttpsURLConnection?
@@ -191,10 +208,10 @@ suspend fun mLoad(string: String): BufferedReader? {
     } catch (e: IOException) {
         e.printStackTrace()
         Log.v("PDM", "Erro de comunicação: "+e.message)
-
     }
     return null
 }
+
 // Function to convert string to URL
 private fun mStringToURL(string: String): URL? {
     try {
@@ -205,6 +222,7 @@ private fun mStringToURL(string: String): URL? {
     }
     return null
 }
+
 @Composable
 fun DropdownMenuField(
     options: List<String>,
